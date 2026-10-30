@@ -47,23 +47,31 @@
         }
     </style>
     <script>
-        function submitInfo() {
-            var clientIDInput = document.getElementById("clientIDInput")
+        async function submitInfo() {
+            var clientIDInput = document.getElementById("clientIDInput");
             var clientSecretInput = document.getElementById("clientSecretInput");
 
             if (clientIDInput.value.length < 32 || clientSecretInput.value.length < 32) {
-                document.getElementById("error-output").innerHTML = "Invalid secret/client id."
+                document.getElementById("error-output").innerHTML = "Invalid secret/client id.";
                 return;
             }
 
-            fetch("http://localhost:23435/pre-callback?clientid=" + clientIDInput.value + "&clientsecret=" + clientSecretInput.value);
-            window.location.href = encodeURI("https://accounts.spotify.com/authorize?response_type=code&client_id=" + clientIDInput.value + "&scope=user-read-private user-modify-playback-state user-read-currently-playing user-read-playback-position streaming user-read-playback-state&redirect_uri=http://localhost:23435/callback");
+            // It is essential that the pre-callback function record the identifiers
+            try {
+                await fetch("/pre-callback?clientid=" + encodeURIComponent(clientIDInput.value.trim()) + "&clientsecret=" + encodeURIComponent(clientSecretInput.value.trim()));
+            } catch (e) {
+                document.getElementById("error-output").innerHTML = "Erreur de communication locale.";
+                return;
+            }
+
+            // Redirection then takes place
+            window.location.href = encodeURI("https://accounts.spotify.com/authorize?response_type=code&client_id=" + clientIDInput.value.trim() + "&scope=user-read-private user-modify-playback-state user-read-currently-playing user-read-playback-position streaming user-read-playback-state&redirect_uri=http://127.0.0.1:23435/callback");
         }
     </script>
 </head>
 <body>
 <div class="container">
-    <h1>Spoticraft - Setup Page 2/2</h1>
+    <h1>SpoticraftContinued - Setup Page 2/2</h1>
     <p>Enter the details gathered on page 1 of setup:</p>
     <label for="clientIDInput">Client ID</label>
     <input class="u-full-width" type="text" id="clientIDInput" required>

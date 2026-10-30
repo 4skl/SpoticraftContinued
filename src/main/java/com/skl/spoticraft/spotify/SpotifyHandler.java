@@ -1,9 +1,9 @@
 package com.skl.spoticraft.spotify;
 
-import com.github.winterreisender.webviewko.WebviewKo;
+import com.skl.spoticraft.client.SpoticraftClient;
 import com.skl.spoticraft.spotify.server.*;
 import com.sun.net.httpserver.HttpServer;
-import com.skl.spoticraft.client.SpoticraftClient;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import org.apache.hc.core5.http.ParseException;
 import se.michaelthelin.spotify.SpotifyApi;
@@ -11,7 +11,7 @@ import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.miscellaneous.CurrentlyPlaying;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.InetSocketAddress;
 import java.util.HashSet;
 
 import static com.skl.spoticraft.client.SpoticraftClient.LOGGER;
@@ -21,12 +21,8 @@ public class SpotifyHandler {
     public static HashSet<SongChangeEvent> songChangeEvent = new HashSet<>();
 
     public static void setup(boolean reset) {
-        if(reset || SpoticraftClient.SPOTIFY_CONFIG.empty) {
+        if (reset || SpoticraftClient.SPOTIFY_CONFIG.empty) {
             LOGGER.info("Starting oauth creation screen.");
-
-            WebviewKo webview = new WebviewKo(1, null);
-            webview.title("Spoticraft - Setup");
-            webview.size(398, 677, WebviewKo.WindowHint.Fixed);
 
             try {
                 final HttpServer server = HttpServer.create(new InetSocketAddress(23435), 0);
@@ -37,17 +33,15 @@ public class SpotifyHandler {
                 server.createContext("/callback", new CallbackHandler(server));
                 server.start();
             } catch (IOException e) {
-                LOGGER.error("Failed to setup spotify.");
+                LOGGER.error("Failed to setup spotify.", e);
                 throw new RuntimeException(e);
             }
 
-            if(!SpotifyUtils.netIsAvailable()) {
-                webview.url("http://localhost:23435/no-internet");
-                webview.show();
-                return;
+            // Open setup page in default web browser instead of WebviewKo
+            if (!SpotifyUtils.netIsAvailable()) {
+                Util.getPlatform().openUri("http://127.0.0.1:23435/no-internet");
             } else {
-                webview.url("http://localhost:23435/setup");
-                webview.show();
+                Util.getPlatform().openUri("http://127.0.0.1:23435/setup");
             }
         } else {
             SPOTIFY_API = new SpotifyApi.Builder()
@@ -61,7 +55,7 @@ public class SpotifyHandler {
 
                 SPOTIFY_API.setAccessToken(creds.getAccessToken());
 
-                if(creds.getRefreshToken() != null) {
+                if (creds.getRefreshToken() != null) {
                     SPOTIFY_API.setRefreshToken(creds.getRefreshToken());
                     SpoticraftClient.SPOTIFY_CONFIG.put("refresh-token", creds.getRefreshToken());
                 }
@@ -69,8 +63,7 @@ public class SpotifyHandler {
                 SpoticraftClient.SPOTIFY_CONFIG.put("token", creds.getAccessToken());
                 LOGGER.info("Refreshed Credentials.");
             } catch (IOException | SpotifyWebApiException | ParseException e) {
-                LOGGER.error("Failed to setup spotify. ", e);
-                System.exit(1);
+                LOGGER.error("Failed to refresh spotify credentials: ", e);
             }
         }
 
@@ -86,19 +79,24 @@ public class SpotifyHandler {
         void run(CurrentlyPlaying cp);
     }
 
-
     public static class PollingThread implements Runnable {
         public static CurrentlyPlaying CURRENTLY_PLAYING = null;
+
         @Override
         public void run() {
             while (true) {
                 try {
-                    CURRENTLY_PLAYING = SPOTIFY_API.getUsersCurrentlyPlayingTrack().build().execute();
-                    if (CURRENTLY_PLAYING == null) return;
-                    Minecraft.getInstance().doRunTask(() -> songChangeEvent.forEach(event -> event.run(CURRENTLY_PLAYING)));
+                    // Safe guard: only poll if user has completed login
+                    if (SPOTIFY_API != null) {
+                        CURRENTLY_PLAYING = SPOTIFY_API.getUsersCurrentlyPlayingTrack().build().execute();
+                        if (CURRENTLY_PLAYING != null) {
+                            Minecraft.getInstance().doRunTask(() -> songChangeEvent.forEach(event -> event.run(CURRENTLY_PLAYING)));
+                        }
+                    }
                 } catch (IOException | SpotifyWebApiException | ParseException e) {
                     LOGGER.warn("Failed to poll: " + e);
                 }
+
                 try {
                     Thread.sleep(5000);
                 } catch (InterruptedException e) {
@@ -107,5 +105,4 @@ public class SpotifyHandler {
             }
         }
     }
-
 }

@@ -83,7 +83,7 @@ public class SpotifyScreen extends Screen {
 
         // Info button
         this.addRenderableWidget(Button.builder(Component.literal("ℹ"), btn -> {
-            Util.getPlatform().openUri("https://github.com/mineblock11/Spoticraft");
+            Util.getPlatform().openUri("https://github.com/4skl/SpoticraftContinued");
         }).bounds(2 + 46 + 2, this.height - 22, 20, 20).build());
 
         // Previous button

@@ -116,21 +116,22 @@ repositories {
     maven { url = "https://gitlab.com/api/v4/projects/38224197/packages/maven" }
 }
 
+configurations.minecraftLibrary {
+    // Exclude collisions with Minecraft/Forge runtime modules
+    exclude group: 'net.java.dev.jna'
+    exclude group: 'commons-codec'
+    exclude group: 'org.jetbrains', module: 'annotations'
+}
+
 dependencies {
-    // Specify the version of Minecraft to use.
-    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
-    // The "userdev" classifier will be requested and setup by ForgeGradle.
-    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
-    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
 
-    // Spotify API & WebView (pack them into the jar or use jar-in-jar)
-    implementation 'se.michaelthelin.spotify:spotify-web-api-java:7.2.1'
-    implementation 'com.github.winterreisender:webviewko-jvm:0.6.0'
+    // External Java libraries for Spotify
+    minecraftLibrary 'se.michaelthelin.spotify:spotify-web-api-java:7.2.1'
 
-    // Include Jackson and HTTP dependencies required by Spotify API
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
-    implementation 'org.apache.httpcomponents.client5:httpclient5:5.1.3'
+    // HTTP and JSON dependencies
+    minecraftLibrary 'com.fasterxml.jackson.core:jackson-databind:2.13.3'
+    minecraftLibrary 'org.apache.httpcomponents.client5:httpclient5:5.1.3'
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.

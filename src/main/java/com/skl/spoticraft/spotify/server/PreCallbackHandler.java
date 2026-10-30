@@ -22,10 +22,11 @@ public class PreCallbackHandler implements HttpHandler {
             var clientID = queries.get("clientid");
             var clientSecret = queries.get("clientsecret");
 
-            SpotifyHandler.SPOTIFY_API = SpotifyApi.builder().setClientId(clientID).setClientSecret(clientSecret).setRedirectUri(URI.create("http://localhost:23435/callback")).build();
+            SpotifyHandler.SPOTIFY_API = SpotifyApi.builder().setClientId(clientID).setClientSecret(clientSecret).setRedirectUri(URI.create("http://127.0.0.1:23435/callback")).build();
 
             SpoticraftClient.SPOTIFY_CONFIG.put("client-id", clientID);
             SpoticraftClient.SPOTIFY_CONFIG.put("client-secret", clientSecret);
+            SpoticraftClient.SPOTIFY_CONFIG.markDirty();
 
             try (exchange) {
                 exchange.sendResponseHeaders(200, 0);

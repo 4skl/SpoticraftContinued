@@ -15,9 +15,18 @@ public class LiveWriteProperties extends Properties {
     public boolean empty = true;
 
     public LiveWriteProperties() {
-        // migrate old configs
+        // Ensure parent directory (config/spoticraft/) exists
+        try {
+            if (pathToConfig.getParent() != null && !Files.exists(pathToConfig.getParent())) {
+                Files.createDirectories(pathToConfig.getParent());
+            }
+        } catch (IOException e) {
+            SpoticraftClient.LOGGER.error("Failed to create spoticraft config directory", e);
+        }
+
+        // Migrate old configs if present
         Path legacyPath = FMLPaths.CONFIGDIR.get().resolve("spotify.cred");
-        if(Files.exists(legacyPath)) {
+        if (Files.exists(legacyPath)) {
             SpoticraftClient.LOGGER.warn("Found legacy spotify credentials, migrating to new location");
             try {
                 Files.move(legacyPath, pathToConfig);
@@ -31,14 +40,14 @@ public class LiveWriteProperties extends Properties {
             }
         }
 
-        if(Files.exists(pathToConfig)) {
+        if (Files.exists(pathToConfig)) {
             try (var stream = Files.newInputStream(pathToConfig)) {
                 this.load(stream);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
 
-            if(this.getProperty("client-secret") == null || !Objects.equals(this.getProperty("version"), SpoticraftClient.VERSION)) {
+            if (this.getProperty("client-secret") == null || !Objects.equals(this.getProperty("version"), SpoticraftClient.VERSION)) {
                 SpoticraftClient.LOGGER.warn("Old configuration file! Removing.");
                 try {
                     Files.delete(pathToConfig);
@@ -54,7 +63,10 @@ public class LiveWriteProperties extends Properties {
     }
 
     public void markDirty() throws IOException {
-        try(var os = Files.newOutputStream(pathToConfig)) {
+        if (pathToConfig.getParent() != null && !Files.exists(pathToConfig.getParent())) {
+            Files.createDirectories(pathToConfig.getParent());
+        }
+        try (var os = Files.newOutputStream(pathToConfig)) {
             this.store(os, null);
         }
     }

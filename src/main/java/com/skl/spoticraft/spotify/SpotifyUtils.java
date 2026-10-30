@@ -84,7 +84,7 @@ public class SpotifyUtils {
 
             var item = currentlyPlaying.getItem();
 
-            ResourceLocation texture = new ResourceLocation("spotify", currentlyPlaying.getItem().getId().toLowerCase());
+            ResourceLocation texture = ResourceLocation.tryParse("spotify:" + currentlyPlaying.getItem().getId().toLowerCase());
 
             if (!TEXTURE.containsKey(texture)) {
                 if (item instanceof Track track) {

@@ -8,12 +8,14 @@ import com.skl.spoticraft.spotify.SpotifyHandler;
 import com.skl.spoticraft.spotify.SpotifyUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.core5.http.ParseException;
+import se.michaelthelin.spotify.SpotifyApi;
 import se.michaelthelin.spotify.exceptions.SpotifyWebApiException;
 import se.michaelthelin.spotify.model_objects.credentials.AuthorizationCodeCredentials;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 
 import static com.skl.spoticraft.client.SpoticraftClient.LOGGER;
 
@@ -42,8 +44,21 @@ public class CallbackHandler implements HttpHandler {
             LOGGER.info(code);
 
             if (SpotifyHandler.SPOTIFY_API == null) {
-                LOGGER.error("Spotify instance is null! Presend should have occurred!");
-                System.exit(1);
+                String clientId = SpoticraftClient.SPOTIFY_CONFIG.getProperty("client-id");
+                String clientSecret = SpoticraftClient.SPOTIFY_CONFIG.getProperty("client-secret");
+
+                if (clientId != null && clientSecret != null) {
+                    SpotifyHandler.SPOTIFY_API = new SpotifyApi.Builder()
+                            .setClientId(clientId)
+                            .setClientSecret(clientSecret)
+                            .setRedirectUri(URI.create("http://127.0.0.1:23435/callback"))
+                            .build();
+                } else {
+                    SpoticraftClient.LOGGER.error("Spotify instance is null and no credentials were saved. Redirecting to setup.");
+                    exchange.getResponseHeaders().set("Location", "http://127.0.0.1:23435/setup");
+                    exchange.sendResponseHeaders(302, -1);
+                    return;
+                }
             }
 
             AuthorizationCodeCredentials credentials = null;
